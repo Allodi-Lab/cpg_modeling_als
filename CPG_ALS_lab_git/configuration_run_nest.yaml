@@ -1,0 +1,39 @@
+#Simulation parameters
+delta_clock: .1 #Simulation time step (ms)
+seed: 3141774 #Use 0 for a random seed, Control seed: 3141774
+t_steps: 10000
+optimizing: 0 #Use 1 when running Bayesian optimization to find parameters
+#Define disease progression
+days_after_onset: 0 #Healthy = 0; P45 = 45; P63 = 63; P112 = 112
+#Test exogenous intervention
+synaptically_stabilized: 0 #0 = No; 1 = Yes
+synaptic_compensation: 1 #0 = No; 1 = Yes
+#Test endogenous synaptic effects between RC-MN
+slow_syn_dyn: 1 #Use 1 to increase rise/decay times of excitatory synapses to RCs and inhibitory synapses to MNs
+#Network parameters
+freq_test: 1        #1 = 200/320; 2 = 400/640
+remove_inhibition: 0 #Use 1 to remove inhibition within the RG populations
+rgs_connected: 1 #Use 0 to remove mutual inhibition between the RG populations
+v1v2b_mn_connected: 1 #Use 0 to remove projections from V1/V2b pops to MNPs
+v2a_mn_intact: 0 #Use 1 to preserve V2a and MN populations at P112
+#Data analysis parameters
+calculate_balance: 0
+chop_edges_amount: 5000
+convstd_rate: 200
+convstd_pca: 200
+downsampling_convolved: 0
+high_pass_filtered: false
+PCA_components: 5
+remove_mean: false
+remove_silent: true
+save_all_pops: 0 #Use 1 to save spike data from all neural populations, use 0 to save only MNP data
+save_results: 1
+smoothing_window: 50 #Ex. 50: 50*0.1=5ms time window
+sync_regularity: 0
+#Plot selection
+membrane_potential_plot: 0
+pca_plot: 0
+phase_ordered_plot: 0
+raster_plot: 0
+rate_coded_plot: 1
+spike_distribution_plot: 1
