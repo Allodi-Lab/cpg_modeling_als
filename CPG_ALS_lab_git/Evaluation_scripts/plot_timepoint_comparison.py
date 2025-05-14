@@ -11,9 +11,10 @@ folder_name = sys.argv[1]
 drive_to_compare = str(sys.argv[2])
 plot_isolated_rgs=0 #0=Plot network output; 1=plot only RG output (relevant for isolated RG output only)
 plot_mnp_only=1 #0=Plot all neural populations
-timepoints_to_plot="all" #Choose: 'all', 'disease', 'P0', 'P45', 'P63', 'P112'
-plot_complete_simulation=0 #0=5 seconds for publication plots; 1=10 seconds for full simulation
-save_as_svg = 0
+timepoints_to_plot="P112" #Choose: 'all', 'disease', 'P0', 'P45', 'P63', 'P112'
+save_mnps = 0 #Select 1 if running a P112 test where MNs are preserved
+plot_complete_simulation=1 #0=5 seconds for publication plots; 1=10 seconds for full simulation
+save_as_svg = 1
 
 # Define the path to the parent folder that contains subfolders with CSV files
 parent_directory = "/Users/wdg562/Documents/NEST_simulations/ALS_network_adex_beta_optimization/saved_simulations/" + folder_name
@@ -24,12 +25,14 @@ if plot_isolated_rgs==1:
     name_patterns2 = ["output_rg2"]
     labels1 = ["RG_Flx"]
     labels2 = ["RG_Ext"]
+    num_neurons = 1950
 
 elif plot_mnp_only==1:
     name_patterns1 = ["output_mnp1"]  
     name_patterns2 = ["output_mnp2"]
     labels1 = ["MNP_Flx"]
     labels2 = ["MNP_Ext"]
+    num_neurons = 32 if timepoints_to_plot == "P112" and save_mnps == 0 else 45
 
 else:
     name_patterns1 = ["output_rg1","output_v2b","output_v2a1","output_v0c1","output_1a1","output_rc1","output_mnp1"]  
@@ -40,7 +43,7 @@ else:
 # Dictionary to store data for each pattern pair
 data_pairs = {f"{pattern1}_{pattern2}": {"data1": [], "data2": [], "labels": []} 
               for pattern1, pattern2 in zip(name_patterns1, name_patterns2)}
-
+#print('Output divided by',num_neurons)
 # Iterate over all subdirectories and load CSV files matching the patterns
 for subdir, _, files in os.walk(parent_directory):
     for file in files:
@@ -53,7 +56,9 @@ for subdir, _, files in os.walk(parent_directory):
                     #subfolder_name = os.path.basename(os.path.dirname(subdir))
                     if drive_to_compare in subfolder_name:
                         df = pd.read_csv(file_path)
-                        data_pairs[f"{pattern1}_{pattern2}"]["data1"].append(df.values.flatten())
+                        pop_data1 = df.values.flatten()
+                        #pop_data1 = [x / num_neurons for x in pop_data1]
+                        data_pairs[f"{pattern1}_{pattern2}"]["data1"].append(pop_data1)
                         data_pairs[f"{pattern1}_{pattern2}"]["labels"].append(subfolder_name)
                 elif pattern2 in file:  # Match files for pattern2
                     file_path = os.path.join(subdir, file)
@@ -62,7 +67,9 @@ for subdir, _, files in os.walk(parent_directory):
                     #subfolder_name = os.path.basename(os.path.dirname(subdir))
                     if drive_to_compare in subfolder_name:
                         df = pd.read_csv(file_path)
-                        data_pairs[f"{pattern1}_{pattern2}"]["data2"].append(df.values.flatten())
+                        pop_data2 = df.values.flatten()
+                        #pop_data2 = [x / num_neurons for x in pop_data2]
+                        data_pairs[f"{pattern1}_{pattern2}"]["data2"].append(pop_data2)
 
 # Define the order of subfolder names for sorting
 if timepoints_to_plot=='all':
@@ -105,19 +112,21 @@ for i, (pair_key, pair_data) in enumerate(data_pairs.items()):
                 ax.plot(time, data1, label=f'{labels1[i]}', color='blue', alpha=0.7, linewidth=4)
                 ax.plot(time, data2, label=f'{labels2[i]}', color='orange', alpha=0.7, linewidth=4)   
                 if plot_complete_simulation==1:
-                    ax.set_xlim(0, 100000)
+                    ax.set_xlim(0, 2000)
+                elif len(time)<5000:
+                    ax.set_xlim(0, len(time))
                 else:
-                    ax.set_xlim(0, 50000)
-                ax.set_ylabel('APs per bin')
+                    ax.set_xlim(0, 5000)
+                ax.set_ylabel('Neuron firing rate')
                 if plot_isolated_rgs==1:
-                    title = "Isolated RG Output ("+drive_to_compare+")"
-                    ax.set_ylim(0, 1400)
+                    title = "Isolated RG Output" #"+drive_to_compare+")"
+                    ax.set_ylim(0, 220)
                 elif plot_mnp_only==1 and timepoints_to_plot=="P0":
-                    title = "Healthy Network MNP Output ("+drive_to_compare+")"
-                    ax.set_ylim(0, 120)
+                    title = "Healthy Network MNP Output" # ("+drive_to_compare+")"
+                    ax.set_ylim(0, 200)
                 else:    
-                    title = "Healthy "+drive_to_compare if timepoint == "P0" else timepoint+' '+drive_to_compare
-                    ax.set_ylim(0, 120)
+                    title = "Healthy " if timepoint == "P0" else timepoint# ("+' '+drive_to_compare
+                    ax.set_ylim(0, 200)
                 ax.set_title(title, pad=20)
                 ax.legend()
                 for axis in ['top','bottom','left','right']:
@@ -127,18 +136,18 @@ for i, (pair_key, pair_data) in enumerate(data_pairs.items()):
     # Label the x-axis on the bottom subplot only
     axes[-1].set_xlabel('Time (ms)')
     if plot_complete_simulation==1:
-        axes[-1].set_xticks([0,10000,20000,30000,40000,50000,60000,70000,80000,90000])
-        axes[-1].set_xticklabels([0,1000,2000,3000,4000,5000,6000,7000,8000,9000])
+        axes[-1].set_xticks([0,10000,20000])#,30000,40000,50000,60000,70000,80000,90000])
+        axes[-1].set_xticklabels([0,1000,2000])#,3000,4000,5000,6000,7000,8000,9000])
     else:    
         axes[-1].set_xticks([0,10000,20000,30000,40000,50000])
         axes[-1].set_xticklabels([0,1000,2000,3000,4000,5000])
-
+        
     # Adjust layout for each figure
     plt.tight_layout()
     fig.subplots_adjust(hspace=0.2)  # Add more vertical space between subplots
     fig.subplots_adjust(top=0.9)
     if save_as_svg == 0:
-        plt.savefig(parent_directory + '/' + 'population_output_' + labels1[i] + '_vs_' + labels2[i] + '_' + drive_to_compare +'.pdf',bbox_inches="tight")
+        plt.savefig(parent_directory + '/' + 'population_output_' + labels1[i] + '_vs_' + labels2[i] + '_' + drive_to_compare +'.png',bbox_inches="tight")
     elif save_as_svg == 1:
         plt.savefig(parent_directory + '/' + 'population_output_' + labels1[i] + '_vs_' + labels2[i] + '_' + drive_to_compare +'.svg',bbox_inches="tight", format='svg')
     

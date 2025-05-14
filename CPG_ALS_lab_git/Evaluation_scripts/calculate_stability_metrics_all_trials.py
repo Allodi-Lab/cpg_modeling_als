@@ -15,7 +15,7 @@ plt.rcParams.update({'font.size': 20})
 time_resolution = 0.1
 data_array = []  # To store rows of print_data_array_bd and print_data_array_phase for each file pair
 
-def analyze_output(input_1, input_2, pop_type, y_line_bd, y_line_phase, min_dist):
+def analyze_output(input_1, input_2, pop_type, y_line_bd, y_line_phase, min_dist, num_motor_neurons):
     print_data_array_bd = []
     print_data_array_phase = []
     try:
@@ -26,38 +26,50 @@ def analyze_output(input_1, input_2, pop_type, y_line_bd, y_line_phase, min_dist
         pop_data1_norm = (pop_data1 - np.min(pop_data1)) / (np.max(pop_data1) - np.min(pop_data1))
         pop_data2_norm = (pop_data2 - np.min(pop_data2)) / (np.max(pop_data2) - np.min(pop_data2))
         
+        pop_data1 = [x / num_motor_neurons for x in pop_data1]
+        pop_data2 = [x / num_motor_neurons for x in pop_data2]
+        
         max_spikes_pop1 = np.max(pop_data1)
         max_spikes_pop2 = np.max(pop_data2)
-        
+
         min_spikes_pop1 = np.min(pop_data1)
         min_spikes_pop2 = np.min(pop_data2)
         
-        up_bd1, down_bd1, burst_duration1, bd_variance1, coeff_bd_variance1 = calculate_burst_duration(pop_data1_norm, y_line_bd)
-        up_bd2, down_bd2, burst_duration2, bd_variance2, coeff_bd_variance2 = calculate_burst_duration(pop_data2_norm, y_line_bd)
-
-        freq_pop1 = calculate_freq(up_bd1)
-        freq_pop2 = calculate_freq(up_bd2)
-        avg_freq = (freq_pop1 + freq_pop2) / 2
+        avg_max_spike_rate_pop1, avg_max_spike_rate_pop2 = calculate_avg_peak(pop_data1, pop_data2, y_line_phase, min_dist)
+        
+        avg_spike_rate_pop1 = np.nanmean(pop_data1)
+        avg_spike_rate_pop2 = np.nanmean(pop_data2)
+        
+        #up_bd1, down_bd1, burst_duration1, bd_variance1, coeff_bd_variance1 = calculate_burst_duration(pop_data1_norm, y_line_bd)
+        #up_bd2, down_bd2, burst_duration2, bd_variance2, coeff_bd_variance2 = calculate_burst_duration(pop_data2_norm, y_line_bd)
+        
+        avg_duration_flx, avg_duration_ext, avg_on_cycle_flx, avg_off_cycle_flx, avg_on_cycle_ext, avg_off_cycle_ext, avg_frequency_flx, avg_frequency_ext, avg_phase = calculate_burst_duration_crossings(pop_data1,pop_data2)
+        
+        #freq_pop1 = calculate_freq(up_bd1)
+        #freq_pop2 = calculate_freq(up_bd2)
+        #avg_freq = (freq_pop1 + freq_pop2) / 2
 
         # Calculate phase using peak to peak
         phase_peak, phase_variance_peak, coeff_phase_variance_peak, freq1, freq2, pop1_peaks, pop2_peaks, cv_freq1, cv_freq2 = calculate_peak_to_peak_phase(pop_data1_norm, pop_data2_norm, y_line_phase, min_dist)
         phase_peak = 360 - phase_peak if phase_peak > 180 else phase_peak  # Ensure phase always between 0-180 degrees
 
-        total_suppression = find_zero_overlap(pop_data1_norm, pop_data2_norm)
+        #total_suppression = find_zero_overlap(pop_data1_norm, pop_data2_norm)
 
         # Calculate CV of amplitude
-        coeff_amp1_var, coeff_amp2_var = calculate_amplitude_cv(pop_data1_norm, pop_data2_norm, y_line_phase, min_dist)
+        #coeff_amp1_var, coeff_amp2_var = calculate_amplitude_cv(pop_data1_norm, pop_data2_norm, y_line_phase, min_dist)
 
         # Store values in the arrays
-        print_data_array_bd.extend([round(burst_duration1, 2), round(burst_duration2, 2), coeff_bd_variance1, coeff_bd_variance2, max_spikes_pop1, max_spikes_pop2, coeff_amp1_var, coeff_amp2_var])
-        print_data_array_phase.extend([freq1, freq2, cv_freq1, cv_freq2, round(phase_peak, 2), coeff_phase_variance_peak, round(100 * (total_suppression / 4000), 2), min_spikes_pop1, min_spikes_pop2])
+        #print_data_array_bd.extend([round(burst_duration1, 2), round(burst_duration2, 2), coeff_bd_variance1, coeff_bd_variance2, avg_max_spike_rate_pop1, avg_max_spike_rate_pop2, coeff_amp1_var, coeff_amp2_var])
+        #print_data_array_phase.extend([freq1, freq2, cv_freq1, cv_freq2, round(phase_peak, 2), avg_spike_rate_pop1, avg_spike_rate_pop2])
 
     except FileNotFoundError as e:
         print(f"File not found: {e}")
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
-    return print_data_array_bd + print_data_array_phase
+    #return avg_max_spike_rate_pop1, avg_max_spike_rate_pop2, avg_on_cycle_flx, avg_off_cycle_flx, avg_on_cycle_ext, avg_off_cycle_ext, avg_frequency_flx, avg_frequency_ext, avg_duration_flx, avg_duration_ext, avg_phase
+    #return avg_max_spike_rate_pop1, avg_max_spike_rate_pop2, avg_on_cycle_flx, avg_off_cycle_flx, avg_on_cycle_ext, avg_off_cycle_ext, freq1, freq2, avg_duration_flx, avg_duration_ext, round(phase_peak, 2)
+    return avg_max_spike_rate_pop1, avg_max_spike_rate_pop2, avg_on_cycle_flx, avg_off_cycle_flx, avg_on_cycle_ext, avg_off_cycle_ext, freq1, freq2, avg_duration_flx, avg_duration_ext, avg_phase
 
 def find_csv_files(folder):
     """
@@ -105,13 +117,106 @@ def calculate_burst_duration(array, value):
     upward_indices = upward_indices[1:min_length]
     burst_duration=(np.subtract(downward_indices,upward_indices))*time_resolution
     bd_variance=np.var(burst_duration)
-    coeff_bd_variance=(np.std(burst_duration)/np.mean(burst_duration))
-    burst_duration=np.mean(burst_duration)
+    coeff_bd_variance=(np.std(burst_duration)/np.nanmean(burst_duration))
+    burst_duration=np.nanmean(burst_duration)
     return upward_indices,downward_indices,round(burst_duration,2),round(bd_variance,2),round(coeff_bd_variance,2)
 
+def calculate_burst_duration_crossings(array1, array2):
+    array1 = np.array(array1)
+    array2 = np.array(array2)
+    diff = array1 - array2
+
+    crossings = np.where(np.diff(np.sign(diff)))[0]
+    burst_durations = np.diff(crossings) * time_resolution
+
+    active_pop = []
+    on_cycle_values_flx = []  
+    off_cycle_values_flx = []
+    on_cycle_values_ext = []  
+    off_cycle_values_ext = []
+    burst_by_group = {"Ext": [], "Flx": []}
+    flx_midpoints = []
+    ext_midpoints = []
+
+    for i in range(len(crossings) - 1):
+        idx_start = crossings[i]
+        idx_end = crossings[i + 1]
+        midpoint = (idx_start + idx_end) // 2  # index-based midpoint
+
+        # Determine which population is leading
+        if array1[idx_start] > array2[idx_start]:
+            active_pop.append("Ext")
+            on_cycle_values_ext.append(np.nanmean(array2[idx_start:idx_end]))
+            off_cycle_values_flx.append(np.nanmean(array1[idx_start:idx_end]))
+            burst_by_group["Ext"].append(burst_durations[i])
+            ext_midpoints.append(midpoint)
+        else:
+            active_pop.append("Flx")
+            on_cycle_values_flx.append(np.nanmean(array1[idx_start:idx_end]))
+            off_cycle_values_ext.append(np.nanmean(array2[idx_start:idx_end]))
+            burst_by_group["Flx"].append(burst_durations[i])
+            flx_midpoints.append(midpoint)
+
+    # Convert midpoints to time
+    flx_midpoints = np.array(flx_midpoints) * time_resolution
+    ext_midpoints = np.array(ext_midpoints) * time_resolution
+
+    # Frequency from flexor-flexor cycle
+    if len(flx_midpoints) > 1:
+        periods = np.diff(flx_midpoints)
+        frequencies = 1000 / periods
+        avg_frequency_flx = round(np.nanmean(frequencies), 2)
+    else:
+        avg_frequency_flx = np.nan
+    
+    # Frequency from extensor-extensor cycle
+    if len(ext_midpoints) > 1:
+        periods = np.diff(ext_midpoints)
+        frequencies = 1000 / periods
+        avg_frequency_ext = round(np.nanmean(frequencies), 2)
+    else:
+        avg_frequency_ext = np.nan
+
+    # Phase of extensor relative to flexor
+    phases = []
+    for ext_mid in ext_midpoints:
+        prev_flx_idx = np.searchsorted(flx_midpoints, ext_mid) - 1
+        if 0 <= prev_flx_idx < len(flx_midpoints) - 1:
+            start = flx_midpoints[prev_flx_idx]
+            end = flx_midpoints[prev_flx_idx + 1]
+            phase = (ext_mid - start) / (end - start)
+            phase_deg = phase * 360 #Convert to degrees
+            if phase_deg > 180:
+                phase_deg = 360 - phase_deg #Ensure max is 180 degrees
+            phases.append(phase_deg)
+
+    avg_phase = round(np.nanmean(phases), 2) if phases else np.nan
+
+    # Duration-weighted average firing rates
+    on_cycle_values_flx = np.array(on_cycle_values_flx)
+    burst_durations_flx = np.array(burst_by_group["Flx"])
+    on_cycle_values_ext = np.array(on_cycle_values_ext)
+    burst_durations_ext = np.array(burst_by_group["Ext"])
+
+    avg_on_cycle_flx = round(np.nansum(on_cycle_values_flx * burst_durations_flx) / np.nansum(burst_durations_flx), 2) if np.nansum(burst_durations_flx) > 0 else np.nan
+    avg_on_cycle_ext = round(np.nansum(on_cycle_values_ext * burst_durations_ext) / np.nansum(burst_durations_ext), 2) if np.nansum(burst_durations_ext) > 0 else np.nan
+
+    avg_off_cycle_flx = round(np.nanmean(off_cycle_values_flx), 2)
+    avg_off_cycle_ext = round(np.nanmean(off_cycle_values_ext), 2)
+    avg_duration_flx = round(np.nanmean(burst_durations_flx), 2)
+    avg_duration_ext = round(np.nanmean(burst_durations_ext), 2)
+
+    #print(f" Avg on-cycle Flx: {avg_on_cycle_flx}, Off-cycle: {avg_off_cycle_flx}")
+    #print(f" Avg on-cycle Ext: {avg_on_cycle_ext}, Off-cycle: {avg_off_cycle_ext}")
+    #print(f" Avg burst duration Flx, Ext: {avg_duration_flx}, {avg_duration_ext}")
+    #print(f" Avg frequency (flx, ext): {avg_frequency_flx} Hz {avg_frequency_ext} Hz, Avg phase: {avg_phase} (Ext rel. to Flx)")
+
+    return avg_duration_flx, avg_duration_ext, avg_on_cycle_flx, avg_off_cycle_flx, avg_on_cycle_ext, avg_off_cycle_ext, avg_frequency_flx, avg_frequency_ext, avg_phase
+
+
 def calculate_peak_to_peak_phase(spike_bins1, spike_bins2, min_peak_height, min_dist):
-    pop1_peaks = find_peaks(spike_bins1, height=min_peak_height, distance=min_dist, prominence=0.1)[0]
-    pop2_peaks = find_peaks(spike_bins2, height=min_peak_height, distance=min_dist, prominence=0.1)[0]
+    pop1_peaks, pop1_properties = find_peaks(spike_bins1, height=min_peak_height, distance=min_dist, prominence=0.1)
+    pop2_peaks, pop2_properties = find_peaks(spike_bins2, height=min_peak_height, distance=min_dist, prominence=0.1)
 
     alternating_peaks1 = []
     alternating_peaks2 = []
@@ -146,8 +251,8 @@ def calculate_peak_to_peak_phase(spike_bins1, spike_bins2, min_peak_height, min_
     # Calculate time differences
     time_diff = np.subtract(alternating_peaks2, alternating_peaks1)
     
-    period1 = np.mean(np.diff(alternating_peaks1)) * time_resolution
-    period2 = np.mean(np.diff(alternating_peaks2)) * time_resolution
+    period1 = np.nanmean(np.diff(alternating_peaks1)) * time_resolution
+    period2 = np.nanmean(np.diff(alternating_peaks2)) * time_resolution
 
     # Calculate frequency for period1 and period2
     freq1 = 1000 / period1
@@ -167,16 +272,36 @@ def calculate_peak_to_peak_phase(spike_bins1, spike_bins2, min_peak_height, min_
     phase = (avg_period - (time_diff * time_resolution)) / avg_period
     phase_in_deg = phase * 360
     phase_variance = np.var(phase_in_deg)
-    coeff_phase_var = (np.std(phase_in_deg) / np.mean(phase_in_deg)) 
-    avg_phase_in_deg = np.mean(phase * 360)
+    coeff_phase_var = (np.std(phase_in_deg) / np.nanmean(phase_in_deg)) 
+    avg_phase_in_deg = np.nanmean(phase * 360)
     
     # Normalize the phase to the range [0, 360)
     avg_phase_in_deg = (avg_phase_in_deg + 360) % 360
 
     return round(avg_phase_in_deg, 2), round(phase_variance, 2), round(coeff_phase_var, 2), freq1, freq2, alternating_peaks1, alternating_peaks2, cv_freq1, cv_freq2
 
+def calculate_avg_peak(spike_bins1, spike_bins2, min_peak_height, min_dist):
+    adjusted_min_peak_height_pop1 = np.max(spike_bins1)*min_peak_height
+    adjusted_min_peak_height_pop2 = np.max(spike_bins2)*min_peak_height
+    
+    pop1_peaks, pop1_properties = find_peaks(spike_bins1, height=adjusted_min_peak_height_pop1, distance=min_dist, prominence=0.1)
+    pop2_peaks, pop2_properties = find_peaks(spike_bins2, height=adjusted_min_peak_height_pop2, distance=min_dist, prominence=0.1)
+    
+    #pop1_peaks, pop1_properties = find_peaks(spike_bins1, height=min_peak_height, distance=min_dist, prominence=0.1)
+    #pop2_peaks, pop2_properties = find_peaks(spike_bins2, height=min_peak_height, distance=min_dist, prominence=0.1)
+
+    # Extract peak heights
+    pop1_heights = pop1_properties['peak_heights']
+    pop2_heights = pop2_properties['peak_heights']
+    
+    avg_peak_height_pop1 = np.nanmean(pop1_heights)
+    avg_peak_height_pop2 = np.nanmean(pop2_heights)
+    
+    return round(avg_peak_height_pop1,4), round(avg_peak_height_pop2,4)
+
+
 def calculate_amplitude_cv(spike_bins1, spike_bins2, min_peak_height, min_dist):
-    # Extract peaks and their properties (including heights)
+    # Extract peaks and their properties
     pop1_peaks, pop1_properties = find_peaks(spike_bins1, height=min_peak_height, distance=min_dist, prominence=0.1)
     pop2_peaks, pop2_properties = find_peaks(spike_bins2, height=min_peak_height, distance=min_dist, prominence=0.1)
 
@@ -187,15 +312,15 @@ def calculate_amplitude_cv(spike_bins1, spike_bins2, min_peak_height, min_dist):
     # Calculate the variance and coefficient of variation for amplitude
     amp1_variance = np.var(pop1_heights)
     amp2_variance = np.var(pop2_heights)
-    coeff_amp1_var = (np.std(pop1_heights) / np.mean(pop1_heights))
-    coeff_amp2_var = (np.std(pop2_heights) / np.mean(pop2_heights))
+    coeff_amp1_var = (np.std(pop1_heights) / np.nanmean(pop1_heights))
+    coeff_amp2_var = (np.std(pop2_heights) / np.nanmean(pop2_heights))
 
     #print('Amplitude CV (1,2)', coeff_amp1_var, coeff_amp2_var)
     
     return round(coeff_amp1_var,4), round(coeff_amp2_var,4)
 
 def calculate_freq(arr):
-    period = np.mean(np.diff(arr)) * time_resolution
+    period = np.nanmean(np.diff(arr)) * time_resolution
     freq = 1000 / period
     
     return round(freq,2)
