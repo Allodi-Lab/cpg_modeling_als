@@ -23,7 +23,7 @@ class nest_start():
         nest.set_verbosity('M_ERROR')
         nest.ResetKernel()
         nest.Install("nestml_aeif_cond_beta_module")
-        nest.SetKernelStatus({"local_num_threads":6})
+        nest.SetKernelStatus({"local_num_threads":10})
         nest.SetKernelStatus({"resolution":nn.time_resolution})
         nest.SetKernelStatus({'rng_seed': nn.rng_seed})
         #nest.SetKernelStatus({'print_time': True})

@@ -11,7 +11,7 @@ time_resolution=0.1
 print_data_array_bd=[]
 print_data_array_phase=[]
 
-def analyze_output(input_1,input_2,pop_type,y_line_bd,y_line_phase):
+def analyze_output(input_1,input_2,input_1_true,input_2_true,pop_type,y_line_bd,y_line_phase):
     print('Stability metric calculation')
     try:
         min_dist = 1000
@@ -38,7 +38,11 @@ def analyze_output(input_1,input_2,pop_type,y_line_bd,y_line_phase):
         phase2_y = [pop_data2[t_peak] for t_peak in pop2_peaks]
         
         total_suppression = find_zero_overlap(pop_data1,pop_data2)
-
+        
+        avg_spike_rate_pop1, avg_spike_rate_pop2 = calculate_avg_peak(input_1_true, input_2_true, y_line_phase, min_dist)
+        
+        print(pop_type+' Avg max spike rate (Flx, Ext): ')
+        print(avg_spike_rate_pop1,avg_spike_rate_pop2)
         print(pop_type+' Phase, BD (Flx, Ext): ')
         print(round(phase_peak,2),round(burst_duration1,2),round(burst_duration2,2)) 
         print(pop_type+' Phase CV, BD CV (Flx, Ext): ')
@@ -79,9 +83,25 @@ def calculate_burst_duration(array, value):
     burst_duration=np.mean(burst_duration)
     return upward_indices,downward_indices,round(burst_duration,2),round(bd_variance,2),round(coeff_bd_variance,2)
 
+def calculate_avg_peak(spike_bins1, spike_bins2, min_peak_height, min_dist):
+    adjusted_min_peak_height_pop1 = np.max(spike_bins1)*min_peak_height
+    adjusted_min_peak_height_pop2 = np.max(spike_bins2)*min_peak_height
+    
+    pop1_peaks, pop1_properties = find_peaks(spike_bins1, height=adjusted_min_peak_height_pop1, distance=min_dist, prominence=0.1)
+    pop2_peaks, pop2_properties = find_peaks(spike_bins2, height=adjusted_min_peak_height_pop2, distance=min_dist, prominence=0.1)
+
+    # Extract peak heights
+    pop1_heights = pop1_properties['peak_heights']
+    pop2_heights = pop2_properties['peak_heights']
+    
+    avg_peak_height_pop1 = np.mean(pop1_heights)
+    avg_peak_height_pop2 = np.mean(pop2_heights)
+    
+    return round(avg_peak_height_pop1,4), round(avg_peak_height_pop2,4)
+
 def calculate_peak_to_peak_phase(spike_bins1, spike_bins2, min_peak_height, min_dist):
-    pop1_peaks = find_peaks(spike_bins1, height=min_peak_height, distance=min_dist, prominence=0.1)[0]
-    pop2_peaks = find_peaks(spike_bins2, height=min_peak_height, distance=min_dist, prominence=0.1)[0]
+    pop1_peaks, pop1_properties = find_peaks(spike_bins1, height=min_peak_height, distance=min_dist, prominence=0.1)
+    pop2_peaks, pop2_properties = find_peaks(spike_bins2, height=min_peak_height, distance=min_dist, prominence=0.1)
 
     alternating_peaks1 = []
     alternating_peaks2 = []

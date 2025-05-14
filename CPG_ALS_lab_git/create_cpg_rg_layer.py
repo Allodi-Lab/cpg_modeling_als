@@ -11,6 +11,7 @@ import time
 import start_simulation as ss
 import pickle, yaml
 import pandas as pd
+import warnings
 #import elephant
 from scipy.signal import find_peaks,correlate
 from scipy.fft import fft, fftfreq
@@ -31,6 +32,8 @@ import create_interneuron_pop as inter
 import create_mnp as mnp
 import calculate_stability_metrics as calc
 
+warnings.filterwarnings('ignore')
+
 #Create neuron populations - NEST
 rg1 = flx_rg.create_rg_population()
 rg2 = ext_rg.create_rg_population()
@@ -41,36 +44,20 @@ if nn.rgs_connected == 1:
 
     # Connect excitatory rg neurons to V1/V2b inhibitory populations
     conn.create_connections(rg1.rg_exc_bursting, inh1.inh_inter_tonic, 'custom_rg_v2b')
-    conn.create_connections(rg1.rg_exc_tonic, inh1.inh_inter_tonic, 'custom_rg_v2b')
-    if nn.num_inh_inter_bursting_v2b > 0:
-        conn.create_connections(rg1.rg_exc_bursting, inh1.inh_inter_bursting, 'custom_rg_v2b')
-        conn.create_connections(rg1.rg_exc_tonic, inh1.inh_inter_bursting, 'custom_rg_v2b')
+    #conn.create_connections(rg1.rg_exc_tonic, inh1.inh_inter_tonic, 'custom_rg_v2b')
     conn.create_connections(rg2.rg_exc_bursting, inh2.inh_inter_tonic, 'custom_rg_v1')
-    conn.create_connections(rg2.rg_exc_tonic, inh2.inh_inter_tonic, 'custom_rg_v1')
-    if nn.num_inh_inter_bursting_v1 > 0:
-        conn.create_connections(rg2.rg_exc_bursting, inh2.inh_inter_bursting, 'custom_rg_v1')
-        conn.create_connections(rg2.rg_exc_tonic, inh2.inh_inter_bursting, 'custom_rg_v1')
+    #conn.create_connections(rg2.rg_exc_tonic, inh2.inh_inter_tonic, 'custom_rg_v1')
 
     #Connect V1/V2b inhibitory populations to all rg neurons
     conn.create_connections(inh1.inh_inter_tonic,rg2.rg_exc_bursting,'custom_v2b_rg') #Healthy = inh_strong, degenerated = custom_v2b_rg
     conn.create_connections(inh1.inh_inter_tonic,rg2.rg_exc_tonic,'custom_v2b_rg')
     conn.create_connections(inh1.inh_inter_tonic,rg2.rg_inh_bursting,'custom_v2b_rg')
     conn.create_connections(inh1.inh_inter_tonic,rg2.rg_inh_tonic,'custom_v2b_rg')
-    if nn.num_inh_inter_bursting_v2b>0:
-        conn.create_connections(inh1.inh_inter_bursting,rg2.rg_exc_bursting,'custom_v2b_rg') #Healthy = inh_strong, degenerated = custom_v2b_rg
-        conn.create_connections(inh1.inh_inter_bursting,rg2.rg_exc_tonic,'custom_v2b_rg')
-        conn.create_connections(inh1.inh_inter_bursting,rg2.rg_inh_bursting,'custom_v2b_rg')
-        conn.create_connections(inh1.inh_inter_bursting,rg2.rg_inh_tonic,'custom_v2b_rg')
     conn.create_connections(inh2.inh_inter_tonic,rg1.rg_exc_bursting,'custom_v1_rg') #Healthy = inh_strong, degenerated = custom_v1_rg
     conn.create_connections(inh2.inh_inter_tonic,rg1.rg_exc_tonic,'custom_v1_rg')
     conn.create_connections(inh2.inh_inter_tonic,rg1.rg_inh_bursting,'custom_v1_rg')
     conn.create_connections(inh2.inh_inter_tonic,rg1.rg_inh_tonic,'custom_v1_rg')
-    if nn.num_inh_inter_bursting_v1>0:
-        conn.create_connections(inh2.inh_inter_bursting,rg1.rg_exc_bursting,'custom_v1_rg') #Healthy = inh_strong, degenerated = custom_v1_rg
-        conn.create_connections(inh2.inh_inter_bursting,rg1.rg_exc_tonic,'custom_v1_rg')
-        conn.create_connections(inh2.inh_inter_bursting,rg1.rg_inh_bursting,'custom_v1_rg')
-        conn.create_connections(inh2.inh_inter_bursting,rg1.rg_inh_tonic,'custom_v1_rg')
-	
+    
     #Connect excitatory rg neurons
     conn.create_connections(rg1.rg_exc_bursting,rg2.rg_exc_bursting,'custom_rg_rg')
     conn.create_connections(rg1.rg_exc_bursting,rg2.rg_exc_tonic,'custom_rg_rg')
@@ -81,7 +68,7 @@ if nn.rgs_connected == 1:
     conn.create_connections(rg2.rg_exc_bursting,rg1.rg_exc_tonic,'custom_rg_rg')
     conn.create_connections(rg2.rg_exc_tonic,rg1.rg_exc_bursting,'custom_rg_rg')
     conn.create_connections(rg2.rg_exc_tonic,rg1.rg_exc_tonic,'custom_rg_rg')	
-	
+    
 print("Seed#: ",nn.rng_seed)
 print("RG Flx: # exc (bursting, tonic): ",nn.flx_exc_bursting_count,nn.flx_exc_tonic_count,"; # inh(bursting, tonic): ",nn.flx_inh_bursting_count,nn.flx_inh_tonic_count)
 print("RG Ext: # exc (bursting, tonic): ",nn.ext_exc_bursting_count,nn.ext_exc_tonic_count,"; # inh(bursting, tonic): ",nn.ext_inh_bursting_count,nn.ext_inh_tonic_count)
@@ -165,22 +152,24 @@ if nn.phase_ordered_plot==1:
     print('Convolved spiking activity complete, taking ',int(t_stop-t_start),' seconds.') 
 
 #Calculate balance
-rg1_exc_burst_weight = conn.calculate_weighted_balance(rg1.rg_exc_bursting,rg1.spike_detector_rg_exc_bursting)
-rg1_inh_burst_weight = conn.calculate_weighted_balance(rg1.rg_inh_bursting,rg1.spike_detector_rg_inh_bursting)
-rg1_exc_tonic_weight = conn.calculate_weighted_balance(rg1.rg_exc_tonic,rg1.spike_detector_rg_exc_tonic)
-rg1_inh_tonic_weight = conn.calculate_weighted_balance(rg1.rg_inh_tonic,rg1.spike_detector_rg_inh_tonic)
-weights_per_pop2 = [rg1_exc_burst_weight,rg1_inh_burst_weight,rg1_exc_tonic_weight,rg1_inh_tonic_weight]
-absolute_weights_per_pop2 = [rg1_exc_burst_weight,abs(rg1_inh_burst_weight),rg1_exc_tonic_weight,abs(rg1_inh_tonic_weight)]
-rg1_balance_pct = (sum(weights_per_pop2)/sum(absolute_weights_per_pop2))*100
-print('Flx balance %: ',round(rg1_balance_pct,2),' >0 skew excitatory; <0 skew inhibitory')
-rg2_exc_burst_weight = conn.calculate_weighted_balance(rg2.rg_exc_bursting,rg2.spike_detector_rg_exc_bursting)
-rg2_inh_burst_weight = conn.calculate_weighted_balance(rg2.rg_inh_bursting,rg2.spike_detector_rg_inh_bursting)
-rg2_exc_tonic_weight = conn.calculate_weighted_balance(rg2.rg_exc_tonic,rg2.spike_detector_rg_exc_tonic)
-rg2_inh_tonic_weight = conn.calculate_weighted_balance(rg2.rg_inh_tonic,rg2.spike_detector_rg_inh_tonic)
-weights_per_pop2 = [rg2_exc_burst_weight,rg2_inh_burst_weight,rg2_exc_tonic_weight,rg2_inh_tonic_weight]
-absolute_weights_per_pop2 = [rg2_exc_burst_weight,abs(rg2_inh_burst_weight),rg2_exc_tonic_weight,abs(rg2_inh_tonic_weight)]
-rg2_balance_pct = (sum(weights_per_pop2)/sum(absolute_weights_per_pop2))*100
-print('Ext balance %: ',round(rg2_balance_pct,2),' >0 skew excitatory; <0 skew inhibitory')
+
+if nn.calculate_balance == 1:
+    rg1_exc_burst_weight = conn.calculate_weighted_balance(rg1.rg_exc_bursting,rg1.spike_detector_rg_exc_bursting)
+    rg1_inh_burst_weight = conn.calculate_weighted_balance(rg1.rg_inh_bursting,rg1.spike_detector_rg_inh_bursting)
+    rg1_exc_tonic_weight = conn.calculate_weighted_balance(rg1.rg_exc_tonic,rg1.spike_detector_rg_exc_tonic)
+    rg1_inh_tonic_weight = conn.calculate_weighted_balance(rg1.rg_inh_tonic,rg1.spike_detector_rg_inh_tonic)
+    weights_per_pop2 = [rg1_exc_burst_weight,rg1_inh_burst_weight,rg1_exc_tonic_weight,rg1_inh_tonic_weight]
+    absolute_weights_per_pop2 = [rg1_exc_burst_weight,abs(rg1_inh_burst_weight),rg1_exc_tonic_weight,abs(rg1_inh_tonic_weight)]
+    rg1_balance_pct = (sum(weights_per_pop2)/sum(absolute_weights_per_pop2))*100
+    print('Flx balance %: ',round(rg1_balance_pct,2),' >0 skew excitatory; <0 skew inhibitory')
+    rg2_exc_burst_weight = conn.calculate_weighted_balance(rg2.rg_exc_bursting,rg2.spike_detector_rg_exc_bursting)
+    rg2_inh_burst_weight = conn.calculate_weighted_balance(rg2.rg_inh_bursting,rg2.spike_detector_rg_inh_bursting)
+    rg2_exc_tonic_weight = conn.calculate_weighted_balance(rg2.rg_exc_tonic,rg2.spike_detector_rg_exc_tonic)
+    rg2_inh_tonic_weight = conn.calculate_weighted_balance(rg2.rg_inh_tonic,rg2.spike_detector_rg_inh_tonic)
+    weights_per_pop2 = [rg2_exc_burst_weight,rg2_inh_burst_weight,rg2_exc_tonic_weight,rg2_inh_tonic_weight]
+    absolute_weights_per_pop2 = [rg2_exc_burst_weight,abs(rg2_inh_burst_weight),rg2_exc_tonic_weight,abs(rg2_inh_tonic_weight)]
+    rg2_balance_pct = (sum(weights_per_pop2)/sum(absolute_weights_per_pop2))*100
+    print('Ext balance %: ',round(rg2_balance_pct,2),' >0 skew excitatory; <0 skew inhibitory')
 
 #Create Rate Coded Output
 if nn.rate_coded_plot==1:
@@ -358,8 +347,115 @@ if nn.spike_distribution_plot==1:
     pylab.title('Spike Distribution')
     if nn.args['save_results']: plt.savefig(nn.pathFigures + '/' + 'spike_distribution.pdf',bbox_inches="tight")
     '''
+    
+if nn.isf_output==1:
+    t_start = time.perf_counter()
+    #Calculate instantaneous spiking frequency
+    rgexc1_bursting_freq, rgexc1_bursting_times = popfunc.calculate_interspike_frequency(nn.flx_exc_bursting_count,spiketimes_exc1)
+    rgexc2_bursting_freq, rgexc2_bursting_times = popfunc.calculate_interspike_frequency(nn.ext_exc_bursting_count,spiketimes_exc2)
+    rgexc1_tonic_freq, rgexc1_tonic_times = popfunc.calculate_interspike_frequency(nn.flx_exc_tonic_count,spiketimes_exc_tonic1)
+    rgexc2_tonic_freq, rgexc2_tonic_times = popfunc.calculate_interspike_frequency(nn.ext_exc_tonic_count,spiketimes_exc_tonic2)
+    rginh1_bursting_freq, rginh1_bursting_times = popfunc.calculate_interspike_frequency(nn.flx_inh_bursting_count,spiketimes_inh1)
+    rginh2_bursting_freq, rginh2_bursting_times = popfunc.calculate_interspike_frequency(nn.ext_inh_bursting_count,spiketimes_inh2)
+    rginh1_tonic_freq, rginh1_tonic_times = popfunc.calculate_interspike_frequency(nn.flx_inh_tonic_count,spiketimes_inh_tonic1)
+    rginh2_tonic_freq, rginh2_tonic_times = popfunc.calculate_interspike_frequency(nn.ext_inh_tonic_count,spiketimes_inh_tonic2)
+    
+    if nn.rgs_connected:
+        v2b_freq, v2b_times =popfunc.calculate_interspike_frequency(nn.num_inh_inter_tonic_v2b,spiketimes_inh_inter_tonic1)
+        v1_freq, v1_times =popfunc.calculate_interspike_frequency(nn.num_inh_inter_tonic_v1,spiketimes_inh_inter_tonic2)
+    
+    t_stop = time.perf_counter()    
+    print('Calculating ISF complete, taking ',int(t_stop-t_start),' seconds.')
+    
+    t_start = time.perf_counter()
+    #Convolve spike data - RG populations
+    rg_exc_convolved1, convolved_time = popfunc.convolve_spiking_activity(nn.flx_exc_bursting_count,spiketimes_exc1)
+    rg_exc_tonic_convolved1, _ = popfunc.convolve_spiking_activity(nn.flx_exc_tonic_count,spiketimes_exc_tonic1)
+    rg_inh_convolved1, _ = popfunc.convolve_spiking_activity(nn.flx_inh_bursting_count,spiketimes_inh1)
+    rg_inh_tonic_convolved1, _ = popfunc.convolve_spiking_activity(nn.flx_inh_tonic_count,spiketimes_inh_tonic1)
+    rg1_convolved = np.vstack([rg_exc_convolved1,rg_inh_convolved1])
+    rg1_convolved = np.vstack([rg1_convolved,rg_exc_tonic_convolved1])
+    rg1_convolved = np.vstack([rg1_convolved,rg_inh_tonic_convolved1])
+    rg1_convolved = rg1_convolved.mean(axis=0)
+
+    rg_exc_convolved2, _  = popfunc.convolve_spiking_activity(nn.ext_exc_bursting_count,spiketimes_exc2)
+    rg_exc_tonic_convolved2, _  = popfunc.convolve_spiking_activity(nn.ext_exc_tonic_count,spiketimes_exc_tonic2)
+    rg_inh_convolved2, _  = popfunc.convolve_spiking_activity(nn.ext_inh_bursting_count,spiketimes_inh2)
+    rg_inh_tonic_convolved2, _  = popfunc.convolve_spiking_activity(nn.ext_inh_tonic_count,spiketimes_inh_tonic2)
+    rg2_convolved = np.vstack([rg_exc_convolved2,rg_inh_convolved2])
+    rg2_convolved = np.vstack([rg2_convolved,rg_exc_tonic_convolved2])
+    rg2_convolved = np.vstack([rg2_convolved,rg_inh_tonic_convolved2])
+    rg2_convolved = rg2_convolved.mean(axis=0)
+    
+    # Convolve spike data - inh populations
+    if nn.rgs_connected == 1:
+        v2b_convolved, _  = popfunc.convolve_spiking_activity(nn.num_inh_inter_tonic_v2b, spiketimes_inh_inter_tonic1)
+        v1_convolved, _  = popfunc.convolve_spiking_activity(nn.num_inh_inter_tonic_v1, spiketimes_inh_inter_tonic2)
+    
+    t_stop = time.perf_counter()    
+    print('Convolved spiking activity complete, taking ',int(t_stop-t_start),' seconds.')
+    
+    rg1_isf_max = np.nanmax(np.array([np.nanmean(neuron_freq) for neuron_freq in rgexc1_bursting_freq]))
+    rg2_isf_max = np.nanmax(np.array([np.nanmean(neuron_freq) for neuron_freq in rgexc2_bursting_freq]))
+    rg1_conv_max = np.nanmax(rg1_convolved)
+    rg2_conv_max = np.nanmax(rg2_convolved)
+    rg1_scale = rg1_isf_max / rg1_conv_max
+    rg2_scale = rg2_isf_max / rg2_conv_max
+    
+    rg1_avg_norm = (rg1_convolved-np.min(rg1_convolved))/(np.max(rg1_convolved)-np.min(rg1_convolved))
+    rg2_avg_norm = (rg2_convolved-np.min(rg2_convolved))/(np.max(rg2_convolved)-np.min(rg2_convolved))
+    rg1_convolved_scaled = rg1_convolved*rg1_scale
+    rg2_convolved_scaled = rg2_convolved*rg2_scale
+    if max(rg1_avg_norm)>0 and max(rg2_avg_norm)>0: 
+        avg_freq, avg_phase, bd_comparison = calc.analyze_output(rg1_avg_norm,rg2_avg_norm,rg1_convolved_scaled,rg2_convolved_scaled,'RG',y_line_bd=0.4,y_line_phase=0.7)
+    
+    print('Max firing rate of a Flx RG (ISF):',round(rg1_isf_max,2),'Ext RG:',round(rg2_isf_max,2))
+    print('Max firing rate of a Flx RG (Convolved):',round(rg1_conv_max,2),'Ext RG:',round(rg2_conv_max,2))
+    print('Convolved max is',round(rg1_scale,3),round(rg2_scale,3), 'times the size of ISF max (Flx, Ext).')
+    
+    if nn.rgs_connected==1:
+        v2b_isf_max = np.nanmax(np.array([np.nanmean(neuron_freq) for neuron_freq in v2b_freq]))
+        v1_isf_max = np.nanmax(np.array([np.nanmean(neuron_freq) for neuron_freq in v1_freq]))
+        v2b_conv_max = np.nanmax(v2b_convolved)
+        v1_conv_max = np.nanmax(v1_convolved)
+        v2b_scale = v2b_isf_max / v2b_conv_max
+        v1_scale = v1_isf_max / v1_conv_max
+    
+    
+    if nn.rgs_connected==0:
+        t = convolved_time
+        xticks = np.arange(start=np.ceil(t[0] / 1000) * 1000, stop=t[-1], step=1000)
+        fig, ax = plt.subplots(1,sharex='all',figsize=(18, 12))    
+        ax.plot(t, rg1_convolved*rg1_scale)
+        ax.plot(t, rg2_convolved*rg2_scale)
+        ax.legend(['RG_F', 'RG_E'],loc='upper right',fontsize='x-small') 
+        ax.set_xlabel('Time (ms)')
+        ax.set_xticks(xticks)
+        ax.set_xticklabels([f'{int(x)}' for x in xticks])
+        ax.set_ylabel('Freq (Hz)')
+        ax.set_title('Average Spike Rate')
+        if nn.args['save_results']: plt.savefig(nn.pathFigures + '/' + 'spike_rate_isolated_rgs.pdf',bbox_inches="tight")
+    if nn.rgs_connected==1:
+        t = convolved_time
+        xticks = np.arange(start=np.ceil(t[0] / 1000) * 1000, stop=t[-1], step=1000)
+        fig, ax = plt.subplots(2,sharex='all',figsize=(18, 12))    
+        ax[0].plot(t, rg1_convolved*rg1_scale)
+        ax[0].plot(t, rg2_convolved*rg2_scale)
+        ax[1].plot(t, v2b_convolved*v2b_scale)
+        ax[1].plot(t, v1_convolved*v1_scale)
+        ax[0].set_xticks([])
+        ax[0].legend(['RG_F', 'RG_E'],loc='upper right',fontsize='x-small') 
+        ax[1].legend(['V2b', 'V1'],loc='upper right',fontsize='x-small') 
+        ax[1].set_xlabel('Time (ms)')
+        ax[1].set_xticks(xticks)
+        ax[1].set_xticklabels([f'{int(x)}' for x in xticks])
+        ax[0].set_ylabel('Freq (Hz)')
+        ax[1].set_ylabel('Freq (Hz)')
+        ax[0].set_title('Average Spike Rate')
+        if nn.args['save_results']: plt.savefig(nn.pathFigures + '/' + 'spike_rate_rg_v1v2b.pdf',bbox_inches="tight")
+    
 if nn.args['save_results']:
 	# Save rate-coded output
-	np.savetxt(nn.pathFigures + '/output_rg1.csv',spike_bins_rg1_true,delimiter=',')
-	np.savetxt(nn.pathFigures + '/output_rg2.csv',spike_bins_rg2_true,delimiter=',')
+	np.savetxt(nn.pathFigures + '/output_rg1.csv',rg1_convolved_scaled,delimiter=',')
+	np.savetxt(nn.pathFigures + '/output_rg2.csv',rg2_convolved_scaled,delimiter=',')
 plt.show()
