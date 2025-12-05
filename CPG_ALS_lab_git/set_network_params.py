@@ -53,7 +53,7 @@ class neural_network():
         if days==0:
             print('Running simulation P0 (healthy)')
             #Feedback (1a afferents)
-            self.fb_multiplier = .5
+            self.fb_multiplier = 0.5 
             #V1 synaptic connectivity         
             self.sparsity_custom_v1_rg = self.sparsity_v1_rg   
             self.sparsity_custom_v1_v2a = self.sparsity_v1s_outside_rg_layer 
@@ -79,7 +79,7 @@ class neural_network():
         elif days==45:
             print('Running simulation P45')
             #Feedback (1a afferents)
-            self.fb_multiplier = 0.5
+            self.fb_multiplier = 0.5 
             #Synaptic connectivity        
             self.sparsity_custom_v1_rg = self.sparsity_v1_rg/2
             self.sparsity_custom_v1_v2a = self.sparsity_v1s_outside_rg_layer/2
@@ -92,7 +92,7 @@ class neural_network():
             #V1 synaptic strength
             self.w_1a_multiplier = 2.5 if compensation==1 else 1.  
             self.w_rc_multiplier = 2.5 if compensation==1 else 1.  
-            self.w_v1_multiplier = 2. if compensation==1 else 1. 
+            self.w_v1_multiplier = 2. if compensation==1 else 1.
             #Population size
             self.inh_inter_pop_size= 300
             self.v1_pct_surviving= 1.  
@@ -131,7 +131,7 @@ class neural_network():
         elif days==112 and stabilized==0:
             print('Running simulation P112')
             #Feedback (1a afferents)
-            self.fb_multiplier = 0.5      
+            self.fb_multiplier = .5      
             #Synaptic connectivity 
             self.sparsity_custom_v1_rg = self.sparsity_v1_rg/2 
             self.sparsity_custom_v1_v2a = self.sparsity_v1s_outside_rg_layer/2
@@ -148,16 +148,16 @@ class neural_network():
             #Population size
             self.inh_inter_pop_size= 300 
             self.v1_pct_surviving= .5465 
-            self.v2a_tonic_pop_size= 67 if args['v2a_mn_intact']==0 else 158
+            self.v2a_tonic_pop_size= 67 if args['v2a_intact']==0 else 158
             self.v2a_bursting_pop_size= 0 
             self.v1a_pop_size= 33            
             self.v0c_pop_size= 15        
             self.rc_pop_size= 6 
-            self.num_motor_neurons= 107 if args['v2a_mn_intact']==0 else 150     
+            self.num_motor_neurons= 107 if args['mn_intact']==0 else 150     
         elif days==112 and stabilized==1:
             print('Running simulation P112 with synaptic stabilization')
             #Feedback (1a afferents)
-            self.fb_multiplier = 0.5      
+            self.fb_multiplier = 0.5     
             #Synaptic connectivity                     
             self.sparsity_custom_v1_rg = self.sparsity_v1_rg
             self.sparsity_custom_v1_v2a = self.sparsity_v1s_outside_rg_layer
@@ -203,34 +203,36 @@ class neural_network():
         self.w_custom_v1_rg_std= .01
         
         #Params for interneurons downstream of RG layer
-        self.w_custom_rg_v1a_mean = 1.05*self.exc_weight_multiplier    
+        self.w_custom_rg_v1a_mean = 1.05*self.exc_weight_multiplier  
         self.w_custom_rg_v1a_std = 0.12*self.exc_weight_multiplier 
-        self.w_custom_rc_v1a_mean = -2.0*self.w_rc_multiplier*self.inh_weight_multiplier if compensation==1 else -2.0*self.inh_weight_multiplier #TESTING -0.024
+        self.w_custom_rc_v1a_mean = -2*self.w_rc_multiplier*self.inh_weight_multiplier if compensation==1 else -2*self.inh_weight_multiplier
         self.w_custom_rc_v1a_std = 0.09*self.inh_weight_multiplier 
-        self.w_custom_rc_rc_mean = -4.0*self.w_rc_multiplier*self.inh_weight_multiplier if compensation==1 else -4.0*self.inh_weight_multiplier #TESTING -1.
+        self.w_custom_rc_rc_mean = -4.0*self.w_rc_multiplier*self.inh_weight_multiplier if compensation==1 else -4.0*self.inh_weight_multiplier
         self.w_custom_rc_rc_std = 0.25*self.inh_weight_multiplier  
         self.w_custom_rc_mn_mean= -3.*self.w_rc_multiplier*self.inh_weight_multiplier if compensation==1 else -3.*self.inh_weight_multiplier  #Use this to shape output - smooth curve   
         self.w_custom_rc_mn_std= 0.12*self.inh_weight_multiplier   
         self.w_custom_mn_rc_mean= 8*self.exc_weight_multiplier  
         self.w_custom_mn_rc_std= 0.12*self.exc_weight_multiplier       
-        self.w_custom_v1a_mn_mean= -8*self.w_1a_multiplier*self.inh_weight_multiplier if compensation==1 else -8*self.inh_weight_multiplier #Use this to reduce co-activation TESTING -12
+        self.w_custom_v1a_mn_mean= -8*self.w_1a_multiplier*self.inh_weight_multiplier if compensation==1 else -8*self.inh_weight_multiplier #Use this to reduce co-activation
         self.w_custom_v1a_mn_std= .12*self.inh_weight_multiplier
-        self.w_custom_v1a_v1a_mean= -4.0*self.w_1a_multiplier*self.inh_weight_multiplier if compensation==1 else -4.0*self.inh_weight_multiplier #TESTING -0.8
+        self.w_custom_v1a_v1a_mean= -4.0*self.w_1a_multiplier*self.inh_weight_multiplier if compensation==1 else -4.*self.inh_weight_multiplier
         self.w_custom_v1a_v1a_std= 0.12*self.inh_weight_multiplier
-        self.w_custom_v2b_v2a_mean= -10*self.inh_weight_multiplier #TESTING -1.495
+        self.w_custom_v2b_v2a_mean= -10*self.inh_weight_multiplier
         self.w_custom_v2b_v2a_std= .045*self.inh_weight_multiplier     
-        self.w_custom_v1_v2a_mean= -10*self.w_v1_multiplier*self.inh_weight_multiplier if compensation==1 else -5*self.inh_weight_multiplier #TESTING -1.495
+        self.w_custom_v1_v2a_mean= -10*self.w_v1_multiplier*self.inh_weight_multiplier if compensation==1 else -5*self.inh_weight_multiplier
         self.w_custom_v1_v2a_std= .045*self.inh_weight_multiplier
-        self.w_custom_v2b_mn_mean= -4*self.inh_weight_multiplier     #TESTING 0.1
+        self.w_custom_v2b_mn_mean= -4*self.inh_weight_multiplier
         self.w_custom_v2b_mn_std= .001*self.inh_weight_multiplier     
-        self.w_custom_v1_mn_mean= -4*self.w_v1_multiplier*self.inh_weight_multiplier if compensation==1 else -4*self.inh_weight_multiplier #TESTING 0.1
+        self.w_custom_v1_mn_mean= -4*self.w_v1_multiplier*self.inh_weight_multiplier if compensation==1 else -4*self.inh_weight_multiplier
         self.w_custom_v1_mn_std= .001*self.inh_weight_multiplier      
-        self.w_custom_rg_v2a_mean = 1.*self.exc_weight_multiplier   #TESTING 5.28      
+        self.w_custom_rg_v2a_mean = 1.*self.exc_weight_multiplier     
         self.w_custom_rg_v2a_std = 0.01*self.exc_weight_multiplier         
-        self.w_custom_rg_v0c_mean = 1.*self.exc_weight_multiplier #TESTING 3.6        
+        self.w_custom_rg_v0c_mean = 1.*self.exc_weight_multiplier       
         self.w_custom_rg_v0c_std = 0.01*self.exc_weight_multiplier
-        self.w_custom_v0c_mn_mean= 10.56*self.exc_weight_multiplier if compensation==1 and days==112 else 5.28*self.exc_weight_multiplier
-        self.w_custom_v0c_mn_std= 0.24*self.exc_weight_multiplier if compensation==1 and days==112 else 0.12*self.exc_weight_multiplier
+        #self.w_custom_v0c_mn_mean= 10.56*self.exc_weight_multiplier if compensation==1 and days==112 else 5.28*self.exc_weight_multiplier
+        #self.w_custom_v0c_mn_std= 0.24*self.exc_weight_multiplier if compensation==1 and days==112 else 0.12*self.exc_weight_multiplier
+        self.w_custom_v0c_mn_mean= 10.56*self.exc_weight_multiplier if days==112 else 5.28*self.exc_weight_multiplier 
+        self.w_custom_v0c_mn_std= 0.24*self.exc_weight_multiplier if days==112 else 0.12*self.exc_weight_multiplier 
         self.w_custom_v2a_mn_mean = 3.6*self.w_v2a_multiplier*self.exc_weight_multiplier if stabilized==1 else 3.6*self.exc_weight_multiplier          
         self.w_custom_v2a_mn_std = 0.12*self.exc_weight_multiplier         
         self.w_custom_v2a_selfexc_mean = 0.5*self.exc_weight_multiplier    
@@ -241,7 +243,7 @@ class neural_network():
         self.sparsity_custom_rg_v1 = self.sparsity_rg_v1 #0.01                               
         self.sparsity_custom_rg_v2b = self.sparsity_rg_v2b #0.01      
         self.sparsity_custom_rg_v2a = 0.5 #0.5 
-        self.sparsity_custom_rg_v1a = 0.7 #0.7    
+        self.sparsity_custom_rg_v1a = 0.7 #0.7
         self.sparsity_custom_v2b_rg = self.sparsity_v2b_rg #0.01                           
         self.sparsity_custom_v2b_v2a = self.sparsity_v1s_outside_rg_layer 
         self.sparsity_custom_v2b_mn = self.sparsity_v1s_outside_rg_layer 
@@ -310,6 +312,8 @@ class neural_network():
         #Initialize neuronal parameters
         self.V_th_mean_tonic = -50.0 #mV  
         self.V_th_std_tonic = 1.0 #mV
+        self.V_th_mn_mean_tonic = -50.0 #mV  
+        self.V_th_mn_std_tonic = 1.0 #mV
         self.V_th_v1v2b_mean_tonic = -50.0 #mV  
         self.V_th_v1v2b_std_tonic = 1.0 #mV
         self.V_th_mean_bursting = -51.0 #mV         
@@ -334,16 +338,6 @@ class neural_network():
         self.v1v2b_mn_connected = args['v1v2b_mn_connected']
         self.remove_descending_drive = args['remove_descending_drive']
         self.slow_syn_bias = args['slow_syn_bias']
-        
-        #Feedback
-        self.num_pgs = 100
-        self.fb_rg_flx = args['fb_rg_flx']
-        self.fb_rg_ext = args['fb_rg_ext']
-        self.fb_v2b = args['fb_v2b']
-        self.fb_v1 = args['fb_v1']
-        self.fb_1a_flx = args['fb_1a_flx']
-        self.fb_1a_ext = args['fb_1a_ext']
-        self.sim_fb_freq = args['sim_fb_freq']
        
         print('Running freq test ',freq_test,', Mean desc current (T,B), Mean fb current (T,B): ',self.I_e_tonic_mean,self.I_e_bursting_mean,self.I_fb_tonic_mean,self.I_fb_bursting_mean)
         self.I_e_bursting_std = 0.25*self.I_e_bursting_mean #pA 
@@ -351,6 +345,7 @@ class neural_network():
         self.I_fb_bursting_std = 0.25*self.I_fb_bursting_mean #pA 
         self.I_fb_tonic_std = 0.25*self.I_fb_tonic_mean #pA
         self.noise_std_dev_tonic = self.I_e_tonic_mean #pA
+        self.noise_std_dev_tonic_fb = self.I_fb_tonic_mean #pA
         self.noise_std_dev_bursting = self.I_e_bursting_mean #pA
         print('Noise standard deviation (T,B) ',self.noise_std_dev_tonic,self.noise_std_dev_bursting)
 
@@ -406,6 +401,7 @@ class neural_network():
 
         #Set noise parameters
         self.noise_params_tonic = {"dt": self.time_resolution, "std":self.noise_std_dev_tonic}
+        self.noise_params_tonic_fb = {"dt": self.time_resolution, "std":self.noise_std_dev_tonic_fb}
         self.noise_params_bursting = {"dt": self.time_resolution, "std":self.noise_std_dev_bursting}
    
     ################

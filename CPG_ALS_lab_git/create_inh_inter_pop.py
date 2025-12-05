@@ -53,14 +53,4 @@ class create_inh_inter_population():
         nest.Connect(self.white_noise_tonic,self.inh_inter_tonic,"all_to_all")
         nest.Connect(self.inh_inter_tonic,self.spike_detector_inh_inter_tonic,"one_to_one")
         nest.Connect(self.mm_inh_inter_tonic,self.inh_inter_tonic)
-        
-        if neuron_type=='V2b' and netparams.fb_v2b == 1:
-            #Create poisson generator for feedback
-            self.v2b_pg = nest.Create("poisson_generator",netparams.num_pgs, params={"rate": 0.0})
-            nest.Connect(self.v2b_pg,self.inh_inter_tonic,{'rule': 'pairwise_bernoulli', 'p': 1.})
-            
-        if neuron_type=='V1' and netparams.fb_v1 == 1:
-            #Create poisson generator for feedback
-            self.v1_pg = nest.Create("poisson_generator",netparams.num_pgs, params={"rate": 0.0})
-            nest.Connect(self.v1_pg,self.inh_inter_tonic,{'rule': 'pairwise_bernoulli', 'p': 1.})
                 

@@ -31,9 +31,6 @@ class create_rg_population():
         self.current_multiplier_tonic = netparams.current_multiplier_tonic_flx 
         
         #Create populations for rg
-        '''
-        self.bursting_neuronparams = {'C_m':nest.random.normal(mean=netparams.C_m_bursting_mean, std=netparams.C_m_bursting_std), 'g_L':26.,'E_L':-60.,'V_th':nest.random.normal(mean=netparams.V_th_mean_bursting, std=netparams.V_th_std_bursting),'Delta_T':2.,'tau_w':130., 'a':-11., 'b':30., 'V_reset':-48., 'I_e':nest.random.normal(mean=self.current_multiplier_bursting*netparams.I_e_bursting_mean, std=self.current_multiplier_bursting*netparams.I_e_bursting_std),'t_ref':nest.random.normal(mean=netparams.t_ref_bursting_mean, std=netparams.t_ref_bursting_std),'V_m':nest.random.normal(mean=netparams.V_m_mean, std=netparams.V_m_std),"tau_syn_rise_I": netparams.tau_syn_i_rise, "tau_syn_decay_I": netparams.tau_syn_i_decay, "tau_syn_rise_E": netparams.tau_syn_e_rise, "tau_syn_decay_E": netparams.tau_syn_e_decay} #bursting, Naud et al. 2008, C = pF; g_L = nS
-        '''
         self.bursting_neuronparams = {'C_m':nest.random.normal(mean=netparams.C_m_bursting_mean, std=netparams.C_m_bursting_std), 'g_L':26.,'E_L':-60.,'V_th':nest.random.normal(mean=netparams.V_th_mean_bursting, std=netparams.V_th_std_bursting),'Delta_T':3.,'tau_w':260., 'a':-11., 'b':60., 'V_reset':-48., 'I_e':nest.random.normal(mean=self.current_multiplier_bursting*netparams.I_e_bursting_mean, std=self.current_multiplier_bursting*netparams.I_e_bursting_std),'t_ref':nest.random.normal(mean=netparams.t_ref_bursting_mean, std=netparams.t_ref_bursting_std),'V_m':nest.random.normal(mean=netparams.V_m_mean, std=netparams.V_m_std),"tau_syn_rise_I": netparams.tau_syn_i_rise, "tau_syn_decay_I": netparams.tau_syn_i_decay, "tau_syn_rise_E": netparams.tau_syn_e_rise, "tau_syn_decay_E": netparams.tau_syn_e_decay} 
         self.tonic_neuronparams = {'C_m':nest.random.normal(mean=netparams.C_m_tonic_mean, std=netparams.C_m_tonic_std), 'g_L':10.,'E_L':-70.,'V_th':nest.random.normal(mean=netparams.V_th_mean_tonic, std=netparams.V_th_std_tonic),'Delta_T':2.,'tau_w':30., 'a':3., 'b':0., 'V_reset':-58., 'I_e':nest.random.normal(mean=self.current_multiplier_tonic*netparams.I_e_tonic_mean, std=self.current_multiplier_tonic*netparams.I_e_tonic_std),'t_ref':nest.random.normal(mean=netparams.t_ref_mean, std=netparams.t_ref_std),'V_m':nest.random.normal(mean=netparams.V_m_mean, std=netparams.V_m_std),"tau_syn_rise_I": netparams.tau_syn_i_rise, "tau_syn_decay_I": netparams.tau_syn_i_decay, "tau_syn_rise_E": netparams.tau_syn_e_rise, "tau_syn_decay_E": netparams.tau_syn_e_decay}
         
@@ -47,13 +44,6 @@ class create_rg_population():
         #Create noise
         self.white_noise_tonic = nest.Create("noise_generator",netparams.noise_params_tonic) 
         self.white_noise_bursting = nest.Create("noise_generator",netparams.noise_params_bursting)   
-        
-        if netparams.fb_rg_flx == 1:
-            #Create poisson generator for feedback
-            self.rg_flx_pg = nest.Create("poisson_generator",netparams.num_pgs, params={"rate": 0.0})
-            nest.Connect(self.rg_flx_pg,self.rg_exc_bursting,{'rule': 'pairwise_bernoulli', 'p': 1.})
-            self.spike_detector_rg_flx_pg = nest.Create("spike_recorder",netparams.num_pgs)
-            nest.Connect(self.rg_flx_pg,self.spike_detector_rg_flx_pg,"one_to_one")
         
         #Create spike detectors (for recording spikes)
         self.spike_detector_rg_exc_bursting = nest.Create("spike_recorder",netparams.flx_exc_bursting_count)

@@ -30,7 +30,6 @@ import create_inh_inter_pop as inh
 import create_interneuron_pop as inter 
 import create_mnp as mnp
 import calculate_stability_metrics as calc
-import send_receive_feedback as interface_fb
 
 warnings.filterwarnings('ignore')
 
@@ -49,8 +48,6 @@ rc_1 = inter.interneuron_population()
 rc_2 = inter.interneuron_population()
 mnp1 = mnp.mnp()
 mnp2 = mnp.mnp()
-
-fb = interface_fb.feedback()
 
 if nn.remove_descending_drive==0:
     V0c_1.create_interneuron_population(pop_type='V0c_1',self_connection='none',firing_behavior='tonic',pop_size=nn.v0c_pop_size,input_type='descending')
@@ -188,23 +185,6 @@ num_steps = int(nn.sim_time/nn.time_resolution)
 t_start = time.perf_counter()
 for i in range(int(num_steps/10)-init_time):	
     nest.Simulate(nn.time_resolution*10)
-    num_spikes_flx = popfunc.read_recent_spike_data(mnp1.spike_detector_motor)
-    num_spikes_ext = popfunc.read_recent_spike_data(mnp2.spike_detector_motor)
-    fb.send_muscle_activation(num_spikes_flx,num_spikes_ext)
-    flx_1a_feedback, ext_1a_feedback, flx_1b_feedback, ext_1b_feedback, flx_11_feedback, ext_11_feedback = fb.receive_muscle_afferents()
-    if nn.fb_rg_flx == 1:
-        nest.SetStatus(rg1.rg_flx_pg, {"rate": flx_1a_feedback})
-    if nn.fb_rg_ext == 1:
-        nest.SetStatus(rg2.rg_ext_pg, {"rate": ext_1b_feedback})
-    if nn.fb_v2b == 1:
-        nest.SetStatus(inh1.v2b_pg, {"rate": flx_1a_feedback})
-    if nn.fb_v1 == 1:
-        nest.SetStatus(inh2.v1_pg, {"rate": ext_1b_feedback})    
-    if nn.fb_1a_flx == 1:
-        nest.SetStatus(V1a_1.v1a_1_pg, {"rate": ext_1b_feedback}) #1a are inhibitory, receive "opposite" excitation from feedback
-    if nn.fb_1a_ext == 1:
-        nest.SetStatus(V1a_2.v1a_2_pg, {"rate": flx_1a_feedback})
-    #print("t = " + str(nest.biological_time),end="\r\u001b[1A")
     print("t = " + str(nest.biological_time),end="\r")
 t_stop = time.perf_counter()    
 print('Simulation completed. It took ',round(t_stop-t_start,2),' seconds.')
@@ -236,10 +216,6 @@ senders_rc_2,spiketimes_rc_2 = popfunc.read_spike_data(rc_2.spike_detector)
 #Read spike data - MNPs
 senders_mnp1,spiketimes_mnp1 = popfunc.read_spike_data(mnp1.spike_detector_motor)
 senders_mnp2,spiketimes_mnp2 = popfunc.read_spike_data(mnp2.spike_detector_motor)
-
-if nn.fb_rg_flx == 1:
-    #Read spike data - poisson generators
-    senders_rg_flx_pg,spiketimes_rg_flx_pg = popfunc.read_spike_data(rg1.spike_detector_rg_flx_pg)
 
 #Read spike data - V1/V2b inhibitory populations
 if nn.rgs_connected==1:
@@ -741,19 +717,7 @@ if nn.raster_plot==1:
     pylab.title('Spike Output (Ext)')
     pylab.xlabel('Time (ms)')
     pylab.ylabel('Neuron ID')
-    if nn.args['save_results']: plt.savefig(nn.pathFigures + '/' + 'raster_plot_mns.png',bbox_inches="tight")
-
-if nn.fb_rg_flx == 1:
-    #Plot poisson generator spikes
-    fig,ax = plt.subplots(figsize=(18, 12))
-    for i in range(nn.num_pgs-1):
-        if nn.num_pgs != 0: ax.plot(spiketimes_rg_flx_pg[0][i],senders_rg_flx_pg[0][i],'.')
-    #ax.set_ylim(2,12)
-    #ax.set_xlim(500,4000)
-    ax.set_xlabel('Time (ms)')
-    ax.set_ylabel('Neuron #')
-    plt.title('Poisson Spiking Input')    
-    if nn.args['save_results']: plt.savefig(nn.pathFigures + '/' + 'poisson_spike_input.png',bbox_inches="tight")        
+    if nn.args['save_results']: plt.savefig(nn.pathFigures + '/' + 'raster_plot_mns.png',bbox_inches="tight")      
 
 if nn.args['save_results']:        
     np.savetxt(nn.pathFigures + '/output_mnp1.csv',mnp1_convolved_scaled,delimiter=',')
@@ -775,6 +739,8 @@ if nn.args['save_results'] and nn.save_all_pops==1:
     
 if nn.args['save_results'] and nn.rate_coded_plot == 1 and nn.isf_output == 0:
     # Save population rate output
+    np.savetxt(nn.pathFigures + '/output_v2a1.csv',spike_bins_exc_inter1_true,delimiter=',')
+    np.savetxt(nn.pathFigures + '/output_v2a2.csv',spike_bins_exc_inter2_true,delimiter=',')
     np.savetxt(nn.pathFigures + '/output_mnp1.csv',spike_bins_mnp1_true,delimiter=',')
     np.savetxt(nn.pathFigures + '/output_mnp2.csv',spike_bins_mnp2_true,delimiter=',')
     
@@ -783,8 +749,6 @@ if nn.args['save_results'] and nn.save_all_pops==1 and nn.rate_coded_plot == 1 a
     np.savetxt(nn.pathFigures + '/output_rg2.csv',spike_bins_rg2_true,delimiter=',')
     np.savetxt(nn.pathFigures + '/output_v2b.csv',spike_bins_inh_inter1_true,delimiter=',')
     np.savetxt(nn.pathFigures + '/output_v1.csv',spike_bins_inh_inter2_true,delimiter=',')
-    np.savetxt(nn.pathFigures + '/output_v2a1.csv',spike_bins_exc_inter1_true,delimiter=',')
-    np.savetxt(nn.pathFigures + '/output_v2a2.csv',spike_bins_exc_inter2_true,delimiter=',')
     np.savetxt(nn.pathFigures + '/output_v0c1.csv',spike_bins_V0c_1_true,delimiter=',')
     np.savetxt(nn.pathFigures + '/output_v0c2.csv',spike_bins_V0c_2_true,delimiter=',')
     np.savetxt(nn.pathFigures + '/output_1a1.csv',spike_bins_V1a_1_true,delimiter=',')

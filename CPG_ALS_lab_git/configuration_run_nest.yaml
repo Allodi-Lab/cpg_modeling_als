@@ -11,22 +11,14 @@ synaptic_compensation: 0 #0 = No; 1 = Yes
 #Test endogenous synaptic effects between RC-MN
 slow_syn_dyn: 0 #Use 1 to increase rise/decay times of excitatory synapses to RCs and inhibitory synapses to MNs
 slow_syn_bias: 'none' #Use 'flx' for flexor side bias, 'ext' for extensor side bias, 'none' for no bias
-#Add feedback
-sim_fb_freq: 2.5 #Hz
-#Use 1 to allow feedback to the relevant populations
-fb_rg_flx: 0
-fb_rg_ext: 0
-fb_v2b: 0
-fb_v1: 0
-fb_1a_flx: 0
-fb_1a_ext: 0
 #Network parameters
 freq_test: 1        #1 = 200/320; 2 = 400/640
 remove_inhibition: 0 #Use 1 to remove inhibition within the RG populations
 remove_descending_drive: 0 #Use 1 to remove descending drive to interneuron populations downstream of the RG layer
-rgs_connected: 0 #Use 0 to remove mutual inhibition between the RG populations
+rgs_connected: 1 #Use 0 to remove mutual inhibition between the RG populations
 v1v2b_mn_connected: 1 #Use 0 to remove projections from V1/V2b pops to MNPs
-v2a_mn_intact: 0 #Use 1 to preserve V2a and MN populations at P112
+v2a_intact: 0 #Use 1 to preserve V2a populations at P112
+mn_intact: 0 #Use 1 to preserve MN populations at P112
 #Data analysis parameters
 calculate_balance: 0
 chop_edges_amount: 5000
